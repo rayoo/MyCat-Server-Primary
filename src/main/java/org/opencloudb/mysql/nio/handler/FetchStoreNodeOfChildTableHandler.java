@@ -32,7 +32,6 @@ import org.apache.log4j.Logger;
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
 import org.opencloudb.backend.BackendConnection;
-import org.opencloudb.backend.ConnectionMeta;
 import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.cache.CachePool;
 import org.opencloudb.net.mysql.ErrorPacket;
@@ -80,7 +79,7 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 				if (LOGGER.isDebugEnabled()) {
 					LOGGER.debug("execute in datanode " + dn);
 				}
-				mysqlDN.getConnection(mysqlDN.getDatabase(), true,
+				mysqlDN.getConnection(mysqlDN.getDatabase(), false,
 						new RouteResultsetNode(dn, ServerParse.SELECT, sql),
 						this, dn);
 			} catch (Exception e) {
