@@ -65,7 +65,6 @@ public class RedisPool implements CachePool {
 			}
 		} catch (Exception e) {
 			LOGGER.error(e);
-			throw new RuntimeException(e);
 		} finally {
 			closeJedis(jedis);
 		}
@@ -88,14 +87,13 @@ public class RedisPool implements CachePool {
 					LOGGER.debug(cacheName + "  miss cache ,key:" + key);
 				}
 				cacheStati.incAccessTimes();
-				return null;
 			}
 		} catch (Exception e) {
 			LOGGER.error(e);
-			throw new RuntimeException(e);
 		} finally {
 			closeJedis(jedis);
 		}
+		return null;
 	}
 
 	@Override
@@ -115,7 +113,6 @@ public class RedisPool implements CachePool {
 			LOGGER.info("clear cache " + cacheName + ", clear size:" + delCount);
 		} catch (Exception e) {
 			LOGGER.error(e);
-			throw new RuntimeException(e);
 		} finally {
 			closeJedis(jedis);
 		}
@@ -136,7 +133,6 @@ public class RedisPool implements CachePool {
 			cacheStati.setItemSize(itemSize);
 		} catch (Exception e) {
 			LOGGER.error(e);
-			throw new RuntimeException(e);
 		} finally {
 			closeJedis(jedis);
 		}
@@ -160,7 +156,6 @@ public class RedisPool implements CachePool {
 			}
 		} catch (Exception e) {
 			LOGGER.error(e);
-			throw new RuntimeException(e);
 		} finally {
 			closeJedis(jedis);
 		}
