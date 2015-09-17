@@ -1,18 +1,25 @@
 package org.opencloudb.cache.impl;
 
+import java.util.Set;
+
 import org.apache.log4j.Logger;
 import org.opencloudb.cache.CachePool;
 import org.opencloudb.cache.CacheStatic;
+import org.opencloudb.util.ByteUtil;
+import org.opencloudb.util.CollectionUtil;
 import org.opencloudb.util.SerializeUtil;
 
+import redis.clients.jedis.Jedis;
 import redis.clients.jedis.ShardedJedis;
 import redis.clients.jedis.ShardedJedisPool;
 import redis.clients.util.SafeEncoder;
 
 public class RedisPool implements CachePool {
 	private static final Logger LOGGER = Logger.getLogger(RedisPool.class);
+	// private static final String CMD_OK = "OK";
 	private String cacheName;
 	private byte[] cacheNameByte;
+	private byte[] cacheNameByteMatch;
 	private int cacheSize;
 	private int expireSeconds;
 	private ShardedJedisPool shardedJedisPool = null;
@@ -20,8 +27,9 @@ public class RedisPool implements CachePool {
 
 	public RedisPool(String poolName, int cacheSize, int expireSeconds, ShardedJedisPool shardedJedisPool) {
 		super();
-		this.cacheName = "MyCatServerRedis." + poolName;
+		this.cacheName = "MyCatServer." + poolName;
 		this.cacheNameByte = SafeEncoder.encode(cacheName);
+		this.cacheNameByteMatch = SafeEncoder.encode(cacheName + "*");
 		this.cacheSize = cacheSize;
 		this.expireSeconds = expireSeconds;
 		this.shardedJedisPool = shardedJedisPool;
@@ -39,12 +47,16 @@ public class RedisPool implements CachePool {
 		}
 	}
 
+	private byte[] buildKeyBytes(Object secondKey) {
+		return ByteUtil.byteMerge(cacheNameByte, SerializeUtil.serialize(secondKey)); // 合并两个数组;
+	}
+
 	@Override
 	public void putIfAbsent(Object key, Object value) {
 		ShardedJedis jedis = getJedis();
 		try {
-			byte[] keyBytes = SerializeUtil.serialize(key);
-			if (1 == jedis.hsetnx(cacheNameByte, keyBytes, SerializeUtil.serialize(value))) { // 原先不存在,返回1,否则返回0
+			byte[] keyBytes = buildKeyBytes(key);
+			if (1 == jedis.setnx(keyBytes, SerializeUtil.serialize(value))) { // 原先不存在,返回1,否则返回0
 				jedis.expire(keyBytes, expireSeconds);
 				cacheStati.incPutTimes();
 				if (LOGGER.isDebugEnabled()) {
@@ -63,7 +75,8 @@ public class RedisPool implements CachePool {
 	public Object get(Object key) {
 		ShardedJedis jedis = getJedis();
 		try {
-			Object ret = SerializeUtil.deserialize(jedis.hget(cacheNameByte, SerializeUtil.serialize(key)));
+			byte[] keyBytes = buildKeyBytes(key);
+			Object ret = SerializeUtil.deserialize(jedis.get(keyBytes));
 			if (null != ret) {
 				if (LOGGER.isDebugEnabled()) {
 					LOGGER.debug(cacheName + " hit cache ,key:" + key);
@@ -87,12 +100,19 @@ public class RedisPool implements CachePool {
 
 	@Override
 	public void clearCache() {
-		LOGGER.info("clear cache " + cacheName);
 		ShardedJedis jedis = getJedis();
 		try {
-			jedis.del(cacheNameByte);
+			long delCount = 0;
+			for (Jedis shardJedis : jedis.getAllShards()) {
+				Set<byte[]> shardKeys = shardJedis.keys(cacheNameByteMatch);
+				if (!CollectionUtil.isEmpty(shardKeys)) {
+					delCount += shardJedis.del(shardKeys.toArray(new byte[0][0]));
+				}
+				shardJedis.close();
+			}
 			cacheStati.reset();
 			cacheStati.setMemorySize(0);
+			LOGGER.info("clear cache " + cacheName + ", clear size:" + delCount);
 		} catch (Exception e) {
 			LOGGER.error(e);
 			throw new RuntimeException(e);
@@ -105,7 +125,15 @@ public class RedisPool implements CachePool {
 	public CacheStatic getCacheStatic() {
 		ShardedJedis jedis = getJedis();
 		try {
-			cacheStati.setItemSize(jedis.hlen(cacheNameByte));
+			long itemSize = 0;
+			for (Jedis shardJedis : jedis.getAllShards()) {
+				Set<byte[]> shardKeys = shardJedis.keys(cacheNameByteMatch);
+				if (!CollectionUtil.isEmpty(shardKeys)) {
+					itemSize += shardKeys.size();
+				}
+				shardJedis.close();
+			}
+			cacheStati.setItemSize(itemSize);
 		} catch (Exception e) {
 			LOGGER.error(e);
 			throw new RuntimeException(e);
@@ -119,12 +147,13 @@ public class RedisPool implements CachePool {
 	public long getMaxSize() {
 		return cacheSize;
 	}
-	
+
 	@Override
 	public void remove(Object key) {
 		ShardedJedis jedis = getJedis();
 		try {
-			if (1 == jedis.hdel(cacheNameByte, SerializeUtil.serialize(key))) {
+			byte[] keyBytes = buildKeyBytes(key);
+			if (1 == jedis.del(keyBytes)) {
 				if (LOGGER.isDebugEnabled()) {
 					LOGGER.debug(cacheName + " remove cache ,key:" + key);
 				}

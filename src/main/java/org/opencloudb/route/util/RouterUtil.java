@@ -749,16 +749,19 @@ public class RouterUtil {
 							if (dataNode == null) {
 								allFound = false;
 								continue;
-							} else { // 执行删除语句时, 将缓存删除
-								if (null != rrs.getStatement() && rrs.getStatement().replace(" ", "").toUpperCase().indexOf("DELETEFROM") != -1) {
-									cachePool.remove(tableKey, cacheKey);
-								} else { // 执行其它 增改查 语句
-									if (tablesRouteMap.get(tableName) == null) {
-										tablesRouteMap.put(tableName, new HashSet<String>());
-									}
-									tablesRouteMap.get(tableName).add(dataNode);
-									continue;
+							} else { 
+								if (tablesRouteMap.get(tableName) == null) {
+									tablesRouteMap.put(tableName, new HashSet<String>());
 								}
+								tablesRouteMap.get(tableName).add(dataNode);
+								// 执行删除语句时, 将缓存删除
+								if (null != rrs.getStatement() && rrs.getStatement().replace(" ", "").toUpperCase().indexOf("DELETEFROM") != -1) {
+									if (LOGGER.isDebugEnabled()) {
+										LOGGER.debug("delete by pk sql, remove cache by primary key: " + cacheKey);
+									}
+									cachePool.remove(tableKey, cacheKey);
+								} 
+								continue;
 							}
 						}
 						if (!allFound) {
