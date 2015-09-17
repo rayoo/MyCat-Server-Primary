@@ -34,6 +34,8 @@ import java.util.Map;
 public interface LayerCachePool extends CachePool {
 
 	public void putIfAbsent(String primaryKey, Object secondKey, Object value);
+	
+	public void remove(String primaryKey, Object secondKey);
 
 	public Object get(String primaryKey, Object secondKey);
 

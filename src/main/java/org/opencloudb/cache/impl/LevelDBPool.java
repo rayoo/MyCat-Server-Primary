@@ -6,10 +6,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import org.opencloudb.cache.CachePool;
-import org.opencloudb.cache.CacheStatic;
+
 import org.apache.log4j.Logger;
 import org.iq80.leveldb.DB;
+import org.opencloudb.cache.CachePool;
+import org.opencloudb.cache.CacheStatic;
 
 
 public class LevelDBPool implements CachePool {
@@ -125,5 +126,13 @@ public class LevelDBPool implements CachePool {
         }        
         return obj;      
     } 
+    
+	@Override
+	public void remove(Object key) {
+    	cache.delete(toByteArray(key));
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug(name+" remove cache ,key:" + key);
+		}
+	}
 
 }

@@ -23,12 +23,13 @@
  */
 package org.opencloudb.cache.impl;
 
+import org.apache.log4j.Logger;
 import org.mapdb.HTreeMap;
 import org.opencloudb.cache.CachePool;
 import org.opencloudb.cache.CacheStatic;
 
 public class MapDBCachePool implements CachePool {
-
+	private static final Logger LOGGER = Logger.getLogger(MapDBCachePool.class);
 	private final HTreeMap<Object, Object> htreeMap;
 	private final CacheStatic cacheStati = new CacheStatic();
     private final long maxSize;
@@ -75,6 +76,12 @@ public class MapDBCachePool implements CachePool {
 	@Override
 	public long getMaxSize() {
 		return maxSize;
+	}
+	
+	@Override
+	public void remove(Object key) {
+		if (null != htreeMap.remove(key)) {
+		}
 	}
 
 }

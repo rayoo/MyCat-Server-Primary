@@ -75,4 +75,18 @@ public class SimpleCachePool implements LayerCachePool {
 	public long getMaxSize() {
 		return 100;
 	}
+
+	@Override
+	public void remove(Object key) {
+		cacheMap.remove(key);
+	}
+
+	@Override
+	public void remove(String primaryKey, Object secondKey) {
+		remove(primaryKey+"_"+secondKey);
+	}
+
+	
+	
+	
 };

@@ -1,13 +1,19 @@
 package org.opencloudb.route.util;
 
-import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
-import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
-import com.alibaba.druid.wall.spi.WallVisitorUtils;
-import com.google.common.base.Strings;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
+import java.sql.SQLNonTransientException;
+import java.sql.SQLSyntaxErrorException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
 import org.opencloudb.cache.LayerCachePool;
@@ -28,10 +34,14 @@ import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.util.StringUtil;
 
-import java.sql.SQLNonTransientException;
-import java.sql.SQLSyntaxErrorException;
-import java.util.*;
-import java.util.concurrent.Callable;
+import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+import com.alibaba.druid.wall.spi.WallVisitorUtils;
+import com.google.common.base.Strings;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * 从ServerRouterUtil中抽取的一些公用方法，路由解析工具类
@@ -739,12 +749,16 @@ public class RouterUtil {
 							if (dataNode == null) {
 								allFound = false;
 								continue;
-							} else {
-								if(tablesRouteMap.get(tableName) == null) {
-									tablesRouteMap.put(tableName, new HashSet<String>());
+							} else { // 执行删除语句时, 将缓存删除
+								if (null != rrs.getStatement() && rrs.getStatement().replace(" ", "").toUpperCase().indexOf("DELETEFROM") != -1) {
+									cachePool.remove(tableKey, cacheKey);
+								} else { // 执行其它 增改查 语句
+									if (tablesRouteMap.get(tableName) == null) {
+										tablesRouteMap.put(tableName, new HashSet<String>());
+									}
+									tablesRouteMap.get(tableName).add(dataNode);
+									continue;
 								}
-								tablesRouteMap.get(tableName).add(dataNode);
-								continue;
 							}
 						}
 						if (!allFound) {

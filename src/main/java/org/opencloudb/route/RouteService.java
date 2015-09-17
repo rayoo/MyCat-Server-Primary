@@ -122,6 +122,7 @@ public class RouteService {
 		if (rrs!=null && sqlType == ServerParse.SELECT && rrs.isCacheAble()) {
 			sqlRouteCache.putIfAbsent(cacheKey, rrs);
 		}
+//		if(null != rrs && sqlType == ServerParse.DELETE)
 		return rrs;
 	}
 

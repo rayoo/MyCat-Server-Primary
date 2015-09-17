@@ -94,6 +94,11 @@ public class DefaultLayedCachePool implements LayerCachePool {
 	public Object get(Object key) {
 		return get(defaultCache, key);
 	}
+	
+	@Override
+	public void remove(Object key) {
+		remove(defaultCache, key);
+	}
 
 	@Override
 	public void clearCache() {
@@ -160,6 +165,12 @@ public class DefaultLayedCachePool implements LayerCachePool {
 			maxSize+=cache.getMaxSize();
 		}
 		return maxSize;
+	}
+
+	@Override
+	public void remove(String primaryKey, Object secondKey) {
+		CachePool pool = getCache(primaryKey);
+		pool.remove(secondKey);
 	}
 
 }

@@ -102,4 +102,15 @@ public class EnchachePool implements CachePool {
 		return maxSize;
 	}
 
+	@Override
+	public void remove(Object key) {
+		if(enCache.remove(key)) {
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug(name+" remove cache ,key:" + key);
+			}
+		}
+	}
+	
+	
+
 }
